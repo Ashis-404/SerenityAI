@@ -1,0 +1,14 @@
+.env
+models/
+dataset/
+venv/
+recordings/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+frontend/node_modules/
+frontend/dist/
+.DS_Store
