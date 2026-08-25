@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AcousticWaveformProps {
   isRecording: boolean;
@@ -43,9 +44,8 @@ export const AcousticWaveform: React.FC<AcousticWaveformProps> = ({ isRecording,
         const barHeight = (dataArray[i] / 255) * canvas.height;
 
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        gradient.addColorStop(0, '#14b8a6');
-        gradient.addColorStop(0.5, '#6366f1');
-        gradient.addColorStop(1, '#06b6d4');
+        gradient.addColorStop(0, '#38bdf8');
+        gradient.addColorStop(1, '#a78bfa');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(x, (canvas.height - barHeight) / 2, barWidth - 2, barHeight);
@@ -64,25 +64,21 @@ export const AcousticWaveform: React.FC<AcousticWaveformProps> = ({ isRecording,
     };
   }, [isRecording, stream]);
 
-  if (!isRecording) return null;
-
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '12px',
-      padding: '8px 16px',
-      background: 'rgba(20, 184, 166, 0.1)',
-      border: '1px solid rgba(20, 184, 166, 0.3)',
-      borderRadius: '24px',
-      marginBottom: '12px'
-    }}>
-      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f43f5e' }} className="recording-pulse" />
-      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent-teal)' }}>
-        Listening to acoustic affect & speech...
-      </span>
-      <canvas ref={canvasRef} width={120} height={24} style={{ display: 'block' }} />
-    </div>
+    <AnimatePresence>
+      {isRecording && (
+        <motion.div
+          className="waveform-bar"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="waveform-dot" />
+          <span className="waveform-label">Listening...</span>
+          <canvas ref={canvasRef} width={120} height={24} style={{ display: 'block' }} />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

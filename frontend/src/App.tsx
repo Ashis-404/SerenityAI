@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { AuthPage } from './pages/AuthPage';
@@ -8,32 +9,23 @@ import { InsightsPage } from './pages/InsightsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Sparkles } from 'lucide-react';
 
+const pageVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.2 } }
+};
+
 const MainApp: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'companion' | 'memory' | 'insights' | 'settings'>('companion');
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px'
-      }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(20,184,166,0.5), transparent)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }} className="recording-pulse">
-          <Sparkles size={24} color="var(--accent-teal)" />
+      <div className="loading-screen">
+        <div className="loading-orb">
+          <Sparkles size={24} color="#fff" />
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Attuning Serenity...</p>
+        <p className="loading-text">Loading Serenity...</p>
       </div>
     );
   }
@@ -42,15 +34,31 @@ const MainApp: React.FC = () => {
     return <AuthPage />;
   }
 
+  const renderPage = () => {
+    switch (activeTab) {
+      case 'companion': return <CompanionPage />;
+      case 'memory': return <MemoryPage />;
+      case 'insights': return <InsightsPage />;
+      case 'settings': return <SettingsPage />;
+    }
+  };
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="app-shell">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-      
+
       <main style={{ flex: 1 }}>
-        {activeTab === 'companion' && <CompanionPage />}
-        {activeTab === 'memory' && <MemoryPage />}
-        {activeTab === 'insights' && <InsightsPage />}
-        {activeTab === 'settings' && <SettingsPage />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            {renderPage()}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

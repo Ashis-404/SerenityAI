@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Heart, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -24,7 +25,6 @@ export const BreathingExerciseModal: React.FC<BreathingModalProps> = ({
   const [notes, setNotes] = useState('');
   const [activeInterventionId, setActiveInterventionId] = useState<string | undefined>(interventionId);
 
-  // Breathing 4-4-4-4 timer
   useEffect(() => {
     if (phase !== 'active') return;
 
@@ -32,7 +32,6 @@ export const BreathingExerciseModal: React.FC<BreathingModalProps> = ({
       setCountdown((prev) => {
         if (prev > 1) return prev - 1;
 
-        // Advance stage
         if (breathStage === 'Inhale') {
           setBreathStage('Hold');
         } else if (breathStage === 'Hold') {
@@ -80,9 +79,7 @@ export const BreathingExerciseModal: React.FC<BreathingModalProps> = ({
           after_rating: afterRating,
           feedback_notes: notes
         });
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) { /* ignore */ }
     }
     setPhase('finished');
     if (onComplete) onComplete();
@@ -90,178 +87,156 @@ export const BreathingExerciseModal: React.FC<BreathingModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isExpanded = breathStage === 'Inhale' || breathStage === 'Hold';
+
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(5, 8, 15, 0.85)',
-      backdropFilter: 'blur(10px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '16px'
-    }}>
-      <div className="glass-panel" style={{
-        maxWidth: '480px',
-        width: '100%',
-        padding: '32px',
-        position: 'relative',
-        textAlign: 'center'
-      }}>
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer'
-          }}
-        >
-          <X size={20} />
+    <motion.div
+      className="modal-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="modal-panel"
+        style={{ textAlign: 'center' }}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      >
+        <button onClick={onClose} className="modal-close">
+          <X size={18} />
         </button>
 
-        {phase === 'intro' && (
-          <div>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              background: 'rgba(20, 184, 166, 0.15)',
-              color: 'var(--accent-teal)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px'
-            }}>
-              <Heart size={28} />
-            </div>
-            <h2 style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: '8px' }}>
-              4-4-4-4 Box Breathing
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px', lineHeight: 1.6 }}>
-              A clinically-grounded, non-medical grounding technique to lower physiological tension and reset your nervous system.
-            </p>
-
-            <div style={{ textAlign: 'left', marginBottom: '24px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
-                How is your stress level right now? ({beforeRating}/10)
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={beforeRating}
-                onChange={(e) => setBeforeRating(Number(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--accent-teal)' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                <span>1 - Completely Relaxed</span>
-                <span>10 - Highly Stressed</span>
+        <AnimatePresence mode="wait">
+          {phase === 'intro' && (
+            <motion.div
+              key="intro"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+            >
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: 'var(--accent-glow)', color: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <Heart size={28} />
               </div>
-            </div>
+              <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: 8 }}>
+                4-4-4-4 Box Breathing
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
+                A grounding technique to lower physiological tension and reset your nervous system.
+              </p>
 
-            <button onClick={handleStart} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-              Begin 4 Breathing Cycles
-            </button>
-          </div>
-        )}
-
-        {phase === 'active' && (
-          <div style={{ padding: '24px 0' }}>
-            <div style={{
-              width: '180px',
-              height: '180px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(20,184,166,0.35) 0%, rgba(99,102,241,0.2) 70%, transparent 100%)',
-              margin: '0 auto 28px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid rgba(20, 184, 166, 0.4)',
-              boxShadow: '0 0 40px rgba(20, 184, 166, 0.3)',
-              transition: 'all 1s ease-in-out',
-              transform: breathStage === 'Inhale' || breathStage === 'Hold' ? 'scale(1.25)' : 'scale(0.95)'
-            }}>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                {breathStage}
-              </span>
-              <span style={{ fontSize: '36px', fontWeight: 800, color: 'var(--accent-teal)', fontFamily: 'var(--font-heading)' }}>
-                {countdown}
-              </span>
-            </div>
-
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Cycle {cyclesCompleted + 1} of 4 • Follow the expansion and rhythm
-            </p>
-          </div>
-        )}
-
-        {phase === 'feedback' && (
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: '8px' }}>
-              Great job! How are you feeling now?
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>
-              Take a moment to check in with your mind and body.
-            </p>
-
-            <div style={{ textAlign: 'left', marginBottom: '20px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
-                Post-exercise Stress Level ({afterRating}/10)
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={afterRating}
-                onChange={(e) => setAfterRating(Number(e.target.value))}
-                style={{ width: '100%', accentColor: 'var(--accent-teal)' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                <span>1 - Completely Relaxed</span>
-                <span>10 - Highly Stressed</span>
+              <div style={{ textAlign: 'left', marginBottom: 24, background: 'var(--bg-secondary)', padding: 16, borderRadius: 'var(--radius-md)' }}>
+                <label className="input-label" style={{ marginBottom: 8 }}>
+                  Current stress level ({beforeRating}/10)
+                </label>
+                <input
+                  type="range" min="1" max="10"
+                  value={beforeRating}
+                  onChange={(e) => setBeforeRating(Number(e.target.value))}
+                  className="stress-slider"
+                />
+                <div className="stress-labels">
+                  <span>Relaxed</span><span>Highly Stressed</span>
+                </div>
               </div>
-            </div>
 
-            <div style={{ textAlign: 'left', marginBottom: '24px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                Optional Reflection Notes:
-              </label>
-              <textarea
-                placeholder="Notice any shifts in your heart rate, shoulders, or breathing..."
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                style={{ width: '100%', resize: 'none' }}
-              />
-            </div>
+              <button onClick={handleStart} className="btn btn-primary btn-full">
+                Begin 4 Breathing Cycles
+              </button>
+            </motion.div>
+          )}
 
-            <button onClick={handleFeedbackSubmit} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-              Save Reflection & Finish
-            </button>
-          </div>
-        )}
+          {phase === 'active' && (
+            <motion.div
+              key="active"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{ padding: '24px 0' }}
+            >
+              <div className={`breathing-orb ${isExpanded ? 'expanded' : 'contracted'}`}>
+                <span className="breathing-stage">{breathStage}</span>
+                <span className="breathing-count">{countdown}</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Cycle {cyclesCompleted + 1} of 4
+              </p>
+            </motion.div>
+          )}
 
-        {phase === 'finished' && (
-          <div style={{ padding: '16px 0' }}>
-            <CheckCircle2 size={48} color="var(--accent-teal)" style={{ margin: '0 auto 16px' }} />
-            <h2 style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: '8px' }}>
-              Well Done
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-              Your before rating ({beforeRating}) to after rating ({afterRating}) has been recorded in your wellbeing log.
-            </p>
-            <button onClick={onClose} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-              Return to App
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+          {phase === 'feedback' && (
+            <motion.div
+              key="feedback"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <h2 style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: 8 }}>
+                How are you feeling now?
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 20 }}>
+                Take a moment to check in with your body.
+              </p>
+
+              <div style={{ textAlign: 'left', marginBottom: 20, background: 'var(--bg-secondary)', padding: 16, borderRadius: 'var(--radius-md)' }}>
+                <label className="input-label" style={{ marginBottom: 8 }}>
+                  Post-exercise stress ({afterRating}/10)
+                </label>
+                <input
+                  type="range" min="1" max="10"
+                  value={afterRating}
+                  onChange={(e) => setAfterRating(Number(e.target.value))}
+                  className="stress-slider"
+                />
+                <div className="stress-labels">
+                  <span>Relaxed</span><span>Highly Stressed</span>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'left', marginBottom: 24 }}>
+                <label className="input-label">Reflection Notes (optional)</label>
+                <textarea
+                  placeholder="Notice any shifts in your breathing or heart rate..."
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="input-field"
+                  style={{ resize: 'none' }}
+                />
+              </div>
+
+              <button onClick={handleFeedbackSubmit} className="btn btn-primary btn-full">
+                Save & Finish
+              </button>
+            </motion.div>
+          )}
+
+          {phase === 'finished' && (
+            <motion.div
+              key="finished"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{ padding: '16px 0' }}
+            >
+              <CheckCircle2 size={48} color="var(--accent)" style={{ margin: '0 auto 16px' }} />
+              <h2 style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: 8 }}>
+                Well Done
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
+                Stress: {beforeRating} → {afterRating}. Logged in your wellbeing history.
+              </p>
+              <button onClick={onClose} className="btn btn-secondary btn-full">
+                Return to App
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
   );
 };

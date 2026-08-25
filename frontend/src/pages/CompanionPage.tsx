@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import type { Conversation, Message } from '../types';
 import { AcousticWaveform } from '../components/AcousticWaveform';
-import { 
-  Send, 
-  Mic, 
-  MicOff, 
-  Plus, 
-  Volume2, 
-  VolumeX, 
-  Sparkles
+import {
+  Send,
+  Mic,
+  MicOff,
+  Plus,
+  Volume2,
+  VolumeX,
+  Sparkles,
+  User as UserIcon
 } from 'lucide-react';
 
 export const CompanionPage: React.FC = () => {
@@ -22,33 +24,26 @@ export const CompanionPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
 
-  // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // Extraction notification alert
   const [extractionAlert, setExtractionAlert] = useState<{ memories: number; events: number } | null>(null);
-
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, loading]);
+  useEffect(() => { scrollToBottom(); }, [messages, loading]);
 
   const selectConversation = async (id: string) => {
     setActiveConvId(id);
     try {
       const conv = await api.getConversation(id);
       setMessages(conv.messages || []);
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) { /* ignore */ }
   };
 
   const createNewConversation = async () => {
@@ -57,9 +52,7 @@ export const CompanionPage: React.FC = () => {
       setConversations(prev => [conv, ...prev]);
       setActiveConvId(conv.id);
       setMessages([]);
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) { /* ignore */ }
   };
 
   const loadConversations = async () => {
@@ -71,16 +64,11 @@ export const CompanionPage: React.FC = () => {
       } else {
         createNewConversation();
       }
-    } catch (e) {
-      // fallback
-    }
+    } catch (e) { /* ignore */ }
   };
 
-  useEffect(() => {
-    loadConversations();
-  }, []);
+  useEffect(() => { loadConversations(); }, []);
 
-  // Text message send
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || !activeConvId || loading) return;
@@ -90,7 +78,6 @@ export const CompanionPage: React.FC = () => {
     setLoading(true);
     setExtractionAlert(null);
 
-    // Optimistic user message
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
       conversation_id: activeConvId,
@@ -114,11 +101,8 @@ export const CompanionPage: React.FC = () => {
         utterance.rate = 0.95;
         window.speechSynthesis.speak(utterance);
       }
-    } catch (err) {
-      // Fallback
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { /* ignore */ }
+    finally { setLoading(false); }
   };
 
   const processVoiceAudio = async (audioBlob: Blob) => {
@@ -140,14 +124,10 @@ export const CompanionPage: React.FC = () => {
         utterance.rate = 0.95;
         window.speechSynthesis.speak(utterance);
       }
-    } catch (err) {
-      // error
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { /* ignore */ }
+    finally { setLoading(false); }
   };
 
-  // Voice recording
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -158,9 +138,7 @@ export const CompanionPage: React.FC = () => {
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
@@ -173,7 +151,7 @@ export const CompanionPage: React.FC = () => {
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      alert('Microphone access is required for voice conversation.');
+      alert('Microphone access is required for voice input.');
     }
   };
 
@@ -184,285 +162,171 @@ export const CompanionPage: React.FC = () => {
     }
   };
 
-  const getEmotionBadgeClass = (emotion: string) => {
+  const getEmotionClass = (emotion: string) => {
     const e = emotion.toLowerCase();
-    if (e.includes('calm')) return 'badge-calm';
-    if (e.includes('happy')) return 'badge-happy';
-    if (e.includes('sad')) return 'badge-sad';
-    if (e.includes('stress')) return 'badge-stressed';
-    if (e.includes('ang')) return 'badge-angry';
-    if (e.includes('fear')) return 'badge-fearful';
-    return 'badge-neutral';
+    if (e.includes('calm')) return 'emotion-calm';
+    if (e.includes('happy')) return 'emotion-happy';
+    if (e.includes('sad')) return 'emotion-sad';
+    if (e.includes('stress')) return 'emotion-stressed';
+    if (e.includes('ang')) return 'emotion-angry';
+    if (e.includes('fear')) return 'emotion-fearful';
+    return 'emotion-neutral';
   };
 
   return (
-    <div style={{
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '0 24px 24px',
-      height: 'calc(100vh - 120px)',
-      display: 'grid',
-      gridTemplateColumns: '260px 1fr',
-      gap: '20px'
-    }}>
-      {/* Sidebar - Conversations */}
-      <div className="glass-panel" style={{
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden'
-      }}>
-        <button
-          onClick={createNewConversation}
-          className="btn-primary"
-          style={{ width: '100%', justifyContent: 'center', marginBottom: '16px', fontSize: '13px' }}
-        >
-          <Plus size={16} /> New Conversation
-        </button>
+    <div className="chat-layout">
+      {/* Sidebar */}
+      <div className="chat-sidebar">
+        <div className="chat-sidebar-header">
+          <button onClick={createNewConversation} className="btn btn-primary btn-full btn-sm">
+            <Plus size={14} /> New Chat
+          </button>
+        </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="chat-conv-list">
           {conversations.map(c => (
             <button
               key={c.id}
+              className={`chat-conv-item ${activeConvId === c.id ? 'active' : ''}`}
               onClick={() => selectConversation(c.id)}
-              style={{
-                background: activeConvId === c.id ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.02)',
-                border: activeConvId === c.id ? '1px solid var(--border-highlight)' : '1px solid var(--border-subtle)',
-                borderRadius: '10px',
-                padding: '10px 12px',
-                textAlign: 'left',
-                color: activeConvId === c.id ? '#ffffff' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontSize: '13px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                transition: 'all 0.15s ease'
-              }}
             >
               {c.title}
             </button>
           ))}
         </div>
 
-        <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border-subtle)', fontSize: '11px', color: 'var(--text-muted)' }}>
-          <p>💡 Tip: Speak or type about your day, upcoming interviews, or how you feel.</p>
+        <div className="chat-sidebar-tip">
+          💡 Talk about your day, upcoming events, or how you're feeling.
         </div>
       </div>
 
-      {/* Main Conversation Workspace */}
-      <div className="glass-panel" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        {/* Top Chat Bar */}
-        <div style={{
-          padding: '14px 20px',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'rgba(15, 23, 42, 0.4)'
-        }}>
+      {/* Main Chat Area */}
+      <div className="chat-main">
+        {/* Top bar */}
+        <div className="chat-topbar">
           <div>
-            <h2 style={{ fontSize: '15px', fontWeight: 600, fontFamily: 'var(--font-heading)' }}>
-              Serenity Companion
-            </h2>
-            <span style={{ fontSize: '11px', color: 'var(--accent-teal)' }}>
-              ● Attuned to context & vocal affect
-            </span>
+            <h2 className="chat-topbar-title">Serenity</h2>
+            <span className="chat-topbar-status">Online & attuned</span>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={() => setTtsEnabled(!ttsEnabled)}
-              className="btn-secondary"
-              style={{ fontSize: '12px', padding: '6px 12px' }}
-              title={ttsEnabled ? 'Disable Voice Playback' : 'Enable Voice Playback'}
-            >
-              {ttsEnabled ? <Volume2 size={15} color="var(--accent-teal)" /> : <VolumeX size={15} />}
-              {ttsEnabled ? 'Voice On' : 'Voice Off'}
-            </button>
-          </div>
+          <button
+            onClick={() => setTtsEnabled(!ttsEnabled)}
+            className="btn btn-secondary btn-sm"
+          >
+            {ttsEnabled ? <Volume2 size={14} color="var(--accent)" /> : <VolumeX size={14} />}
+            {ttsEnabled ? 'Voice On' : 'Voice Off'}
+          </button>
         </div>
 
-        {/* Extraction Alert Banner */}
-        {extractionAlert && (
-          <div style={{
-            background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.25), rgba(20, 184, 166, 0.25))',
-            borderBottom: '1px solid var(--border-highlight)',
-            padding: '8px 16px',
-            fontSize: '12px',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <Sparkles size={16} color="var(--accent-teal)" />
-            <span>
-              {extractionAlert.memories > 0 && `Saved ${extractionAlert.memories} meaningful memory. `}
-              {extractionAlert.events > 0 && `Scheduled follow-up for your upcoming event! `}
-            </span>
-          </div>
-        )}
+        {/* Extraction alert */}
+        <AnimatePresence>
+          {extractionAlert && (
+            <motion.div
+              className="chat-extraction-banner"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+            >
+              <Sparkles size={14} color="var(--accent)" />
+              <span>
+                {extractionAlert.memories > 0 && `Saved ${extractionAlert.memories} memory. `}
+                {extractionAlert.events > 0 && `Follow-up scheduled! `}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Message Stream */}
-        <div style={{
-          flex: 1,
-          padding: '20px',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
-        }}>
+        {/* Messages */}
+        <div className="chat-messages">
           {messages.length === 0 && (
-            <div style={{ margin: 'auto', textAlign: 'center', maxWidth: '420px', padding: '24px' }}>
-              <div style={{
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                background: 'rgba(20, 184, 166, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px'
-              }}>
-                <Sparkles size={30} color="var(--accent-teal)" />
+            <div className="chat-empty">
+              <div className="chat-empty-orb">
+                <Sparkles size={36} color="#fff" />
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-                Welcome, {user?.name || 'friend'}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6 }}>
-                How are you feeling today? You can type a message or hold the microphone to talk about your day, an upcoming deadline, or simply reflect.
+              <h3 className="chat-empty-title">Hello, {user?.name || 'friend'}</h3>
+              <p className="chat-empty-text">
+                How are you feeling today? Type a message or hold the microphone to talk.
               </p>
             </div>
           )}
 
-          {messages.map(m => (
-            <div
+          {messages.map((m, i) => (
+            <motion.div
               key={m.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: m.sender === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '82%',
-                alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
-              }}
+              className={`msg-row ${m.sender === 'user' ? 'user' : 'ai'}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.25 }}
             >
-              <div style={{
-                background: m.sender === 'user'
-                  ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                  : 'rgba(30, 41, 66, 0.8)',
-                color: '#ffffff',
-                padding: '12px 18px',
-                borderRadius: m.sender === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                border: m.sender === 'user' ? 'none' : '1px solid var(--border-subtle)',
-                fontSize: '14px',
-                lineHeight: 1.6,
-                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {m.text}
+              <div className={`msg-avatar ${m.sender === 'user' ? 'user' : 'ai'}`}>
+                {m.sender === 'user'
+                  ? <UserIcon size={14} color="var(--text-secondary)" />
+                  : <Sparkles size={14} color="#fff" />
+                }
               </div>
 
-              {/* Emotion Indicator on User voice messages */}
-              {m.emotion_analysis && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span className={`badge ${getEmotionBadgeClass(m.emotion_analysis.emotion)}`} style={{
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    textTransform: 'capitalize'
-                  }}>
-                    Affect: {m.emotion_analysis.emotion}
-                  </span>
+              <div className="msg-content">
+                <div className={`msg-bubble ${m.sender === 'user' ? 'user' : 'ai'}`}>
+                  {m.text}
                 </div>
-              )}
 
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
+                <div className={`msg-meta ${m.sender === 'user' ? 'user' : ''}`}>
+                  {m.emotion_analysis && (
+                    <span className={`emotion-badge ${getEmotionClass(m.emotion_analysis.emotion)}`}>
+                      {m.emotion_analysis.emotion}
+                    </span>
+                  )}
+                  <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            </motion.div>
           ))}
 
           {loading && (
-            <div style={{
-              alignSelf: 'flex-start',
-              background: 'rgba(30, 41, 66, 0.8)',
-              padding: '12px 18px',
-              borderRadius: '16px 16px 16px 4px',
-              border: '1px solid var(--border-subtle)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '13px',
-              color: 'var(--accent-teal)'
-            }}>
-              <Sparkles size={16} className="recording-pulse" />
-              <span>Serenity is thinking and attuning...</span>
+            <div className="chat-thinking">
+              <div className="msg-avatar ai">
+                <Sparkles size={14} color="#fff" />
+              </div>
+              <div className="thinking-dots">
+                <span /><span /><span />
+              </div>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Bottom Input Area */}
-        <div style={{
-          padding: '16px 20px',
-          background: 'rgba(15, 23, 42, 0.6)',
-          borderTop: '1px solid var(--border-subtle)',
-        }}>
-          {/* Live Waveform when recording */}
+        {/* Input */}
+        <div className="chat-input-bar">
           <AcousticWaveform isRecording={isRecording} stream={mediaStream} />
 
-          <form onSubmit={handleSendMessage} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Push to talk button */}
+          <form onSubmit={handleSendMessage} className="chat-input-form">
             <button
               type="button"
               onMouseDown={startRecording}
               onMouseUp={stopRecording}
               onTouchStart={startRecording}
               onTouchEnd={stopRecording}
-              style={{
-                background: isRecording ? 'var(--accent-rose)' : 'rgba(20, 184, 166, 0.15)',
-                border: isRecording ? '1px solid var(--accent-rose)' : '1px solid rgba(20, 184, 166, 0.3)',
-                color: isRecording ? '#ffffff' : 'var(--accent-teal)',
-                borderRadius: '12px',
-                width: '44px',
-                height: '44px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-              title="Hold to speak (Push to talk)"
+              className={`mic-btn ${isRecording ? 'recording' : 'idle'}`}
+              title="Hold to speak"
             >
-              {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+              {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
             </button>
 
             <input
               type="text"
-              placeholder={isRecording ? "Listening to your voice..." : "Type a message or hold mic to speak..."}
+              placeholder={isRecording ? 'Listening...' : 'Type a message...'}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               disabled={isRecording || loading}
-              style={{ flex: 1, padding: '12px 16px', fontSize: '14px' }}
+              className="chat-input"
             />
 
             <button
               type="submit"
               disabled={!inputText.trim() || loading || isRecording}
-              className="btn-primary"
-              style={{ height: '44px', padding: '0 18px' }}
+              className="send-btn"
             >
-              <Send size={18} />
+              <Send size={16} />
             </button>
           </form>
         </div>

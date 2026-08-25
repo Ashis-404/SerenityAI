@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
 import type { Memory, AppEvent } from '../types';
-import { 
-  Brain, 
-  Calendar, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  Check, 
-  X, 
-  Sparkles, 
-  Tag, 
-  Target, 
-  Heart, 
-  User as UserIcon, 
-  Clock 
+import {
+  Brain,
+  Calendar,
+  Plus,
+  Trash2,
+  Edit3,
+  Check,
+  X,
+  Sparkles,
+  Tag,
+  Target,
+  Heart,
+  User as UserIcon,
+  Clock
 } from 'lucide-react';
 
 export const MemoryPage: React.FC = () => {
@@ -24,38 +25,25 @@ export const MemoryPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
 
-  // New Memory Form
   const [newType, setNewType] = useState<'fact' | 'preference' | 'goal' | 'person' | 'milestone'>('fact');
   const [newContent, setNewContent] = useState('');
   const [newImportance] = useState(0.8);
 
   const loadData = async () => {
     try {
-      const [mList, eList] = await Promise.all([
-        api.getMemories(),
-        api.getEvents()
-      ]);
+      const [mList, eList] = await Promise.all([api.getMemories(), api.getEvents()]);
       setMemories(mList);
       setEvents(eList);
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) { /* ignore */ }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const handleAddMemory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newContent.trim()) return;
-
     try {
-      const created = await api.createMemory({
-        type: newType,
-        content: newContent.trim(),
-        importance: newImportance
-      });
+      const created = await api.createMemory({ type: newType, content: newContent.trim(), importance: newImportance });
       setMemories(prev => [created, ...prev]);
       setNewContent('');
       setShowAddModal(false);
@@ -67,11 +55,7 @@ export const MemoryPage: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingMemory) return;
     try {
-      const updated = await api.updateMemory(editingMemory.id, {
-        content: editingMemory.content,
-        importance: editingMemory.importance,
-        type: editingMemory.type
-      });
+      const updated = await api.updateMemory(editingMemory.id, { content: editingMemory.content, importance: editingMemory.importance, type: editingMemory.type });
       setMemories(prev => prev.map(m => m.id === updated.id ? updated : m));
       setEditingMemory(null);
     } catch (e) {
@@ -83,126 +67,111 @@ export const MemoryPage: React.FC = () => {
     if (!window.confirm('Are you sure you want Serenity to forget this memory?')) return;
     try {
       await api.deleteMemory(id);
-      setMemories(prev => prev.map(m => m.id === id ? null : m).filter(Boolean) as Memory[]);
+      setMemories(prev => prev.filter(m => m.id !== id));
     } catch (e) {
       alert('Failed to delete memory');
     }
   };
 
-  const filteredMemories = activeFilter === 'all'
-    ? memories
-    : memories.filter(m => m.type === activeFilter);
+  const filteredMemories = activeFilter === 'all' ? memories : memories.filter(m => m.type === activeFilter);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'preference': return <Heart size={14} color="var(--accent-rose)" />;
-      case 'goal': return <Target size={14} color="var(--accent-amber)" />;
-      case 'person': return <UserIcon size={14} color="var(--accent-teal)" />;
-      case 'milestone': return <Sparkles size={14} color="var(--accent-purple)" />;
-      default: return <Tag size={14} color="var(--accent-indigo)" />;
+      case 'preference': return <Heart size={13} color="var(--accent-rose)" />;
+      case 'goal': return <Target size={13} color="var(--accent-amber)" />;
+      case 'person': return <UserIcon size={13} color="var(--accent)" />;
+      case 'milestone': return <Sparkles size={13} color="var(--accent-purple)" />;
+      default: return <Tag size={13} color="var(--accent)" />;
     }
   };
 
-  return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px 36px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-heading)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Brain size={26} color="var(--accent-purple)" />
-            Long-Term Memory & Events
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
-            Transparently view, edit, or delete the meaningful facts and upcoming milestones Serenity remembers.
-          </p>
-        </div>
+  const filters = ['all', 'preference', 'goal', 'person', 'fact', 'milestone'];
 
-        <button onClick={() => setShowAddModal(true)} className="btn-primary">
+  return (
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header flex-between">
+        <div>
+          <h1 className="page-title">
+            <Brain size={24} color="var(--accent-purple)" />
+            Memory & Events
+          </h1>
+          <p className="page-subtitle">View, edit, or delete the meaningful context Serenity remembers.</p>
+        </div>
+        <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
           <Plus size={16} /> Add Memory
         </button>
       </div>
 
-      {/* Events / Deadlines Section */}
+      {/* Events */}
       {events.length > 0 && (
-        <div className="glass-panel" style={{ padding: '20px', marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={18} color="var(--accent-indigo)" />
-            Upcoming Extracted Events & Follow-ups
+        <motion.div
+          className="card card-p"
+          style={{ marginBottom: 24 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Calendar size={16} color="var(--accent)" />
+            Upcoming Events & Follow-ups
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+          <div className="events-grid">
             {events.map(ev => (
-              <div key={ev.id} style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '12px',
-                padding: '14px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{ev.title}</h3>
-                  <span style={{
-                    fontSize: '10px',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    background: 'rgba(20, 184, 166, 0.15)',
-                    color: 'var(--accent-teal)'
-                  }}>
-                    {ev.status}
-                  </span>
+              <div key={ev.id} className="event-card">
+                <div className="flex-between">
+                  <h3 style={{ fontSize: 14, fontWeight: 600 }}>{ev.title}</h3>
+                  <span className="event-status">{ev.status}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                  <Clock size={14} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: 'var(--text-muted)', fontSize: 12 }}>
+                  <Clock size={13} />
                   <span>{new Date(ev.event_time).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* Memory Filter Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '18px', flexWrap: 'wrap' }}>
-        {['all', 'preference', 'goal', 'person', 'fact', 'milestone'].map(filter => (
+      {/* Filter Pills */}
+      <div className="filter-pills">
+        {filters.map(filter => (
           <button
             key={filter}
             onClick={() => setActiveFilter(filter)}
-            style={{
-              background: activeFilter === filter ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-              border: activeFilter === filter ? '1px solid var(--border-highlight)' : '1px solid var(--border-subtle)',
-              color: activeFilter === filter ? '#ffffff' : 'var(--text-secondary)',
-              padding: '6px 14px',
-              borderRadius: '20px',
-              fontSize: '12px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              textTransform: 'capitalize'
-            }}
+            className={`filter-pill ${activeFilter === filter ? 'active' : ''}`}
           >
             {filter} ({filter === 'all' ? memories.length : memories.filter(m => m.type === filter).length})
           </button>
         ))}
       </div>
 
-      {/* Memories Cards Grid */}
+      {/* Memory Grid */}
       {filteredMemories.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '48px 24px', textAlign: 'center' }}>
-          <Brain size={40} color="var(--text-muted)" style={{ margin: '0 auto 12px' }} />
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>No memories found</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', maxWidth: '400px', margin: '0 auto' }}>
+        <div className="card empty-state">
+          <Brain size={36} className="empty-icon" />
+          <h3 className="empty-title">No memories found</h3>
+          <p className="empty-text">
             As you chat with Serenity, it will automatically remember meaningful goals, preferences, and important people you mention.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-          {filteredMemories.map(m => (
-            <div key={m.id} className="glass-panel glass-panel-interactive" style={{ padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="memory-grid">
+          {filteredMemories.map((m, i) => (
+            <motion.div
+              key={m.id}
+              className="card card-p card-interactive memory-card"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.3 }}
+            >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                <div className="flex-between" style={{ marginBottom: 8 }}>
+                  <div className="memory-type-badge">
                     {getTypeIcon(m.type)}
                     <span>{m.type}</span>
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    Importance: {Math.round(m.importance * 100)}%
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {Math.round(m.importance * 100)}%
                   </span>
                 </div>
 
@@ -211,112 +180,98 @@ export const MemoryPage: React.FC = () => {
                     <textarea
                       value={editingMemory.content}
                       onChange={(e) => setEditingMemory({ ...editingMemory, content: e.target.value })}
-                      style={{ width: '100%', minHeight: '60px', marginBottom: '8px' }}
+                      className="input-field"
+                      style={{ marginBottom: 8 }}
                     />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={handleSaveEdit} className="btn-primary" style={{ padding: '4px 10px', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={handleSaveEdit} className="btn btn-primary btn-sm">
                         <Check size={12} /> Save
                       </button>
-                      <button onClick={() => setEditingMemory(null)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}>
+                      <button onClick={() => setEditingMemory(null)} className="btn btn-secondary btn-sm">
                         <X size={12} /> Cancel
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <p style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '14px' }}>
-                    "{m.content}"
-                  </p>
+                  <p className="memory-content">"{m.content}"</p>
                 )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <div className="memory-footer">
                 <span>Saved {new Date(m.created_at).toLocaleDateString()}</span>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    onClick={() => setEditingMemory(m)}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
-                    title="Edit Memory"
-                  >
-                    <Edit3 size={15} />
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button onClick={() => setEditingMemory(m)} className="btn-ghost" title="Edit">
+                    <Edit3 size={14} />
                   </button>
-                  <button
-                    onClick={() => handleDelete(m.id)}
-                    style={{ background: 'transparent', border: 'none', color: '#fb7185', cursor: 'pointer', padding: '4px' }}
-                    title="Delete Memory"
-                  >
-                    <Trash2 size={15} />
+                  <button onClick={() => handleDelete(m.id)} className="btn-ghost" style={{ color: 'var(--accent-rose)' }} title="Delete">
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
 
       {/* Add Memory Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(5, 8, 15, 0.8)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '16px'
-        }}>
-          <div className="glass-panel" style={{ maxWidth: '460px', width: '100%', padding: '28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 600 }}>Add a Memory Manually</h3>
-              <button onClick={() => setShowAddModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddMemory} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Category
-                </label>
-                <select
-                  value={newType}
-                  onChange={(e: any) => setNewType(e.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  <option value="fact">General Fact</option>
-                  <option value="preference">Personal Preference</option>
-                  <option value="goal">Goal / Ambition</option>
-                  <option value="person">Important Person / Relationship</option>
-                  <option value="milestone">Milestone</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  Memory Description
-                </label>
-                <textarea
-                  required
-                  placeholder="e.g. Preparing for machine learning engineer interviews this month"
-                  value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  style={{ width: '100%', minHeight: '80px' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" style={{ flex: 2, justifyContent: 'center' }}>
-                  Save to Long-Term Memory
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="modal-panel"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              <div className="modal-header">
+                <h3 className="modal-title">Add Memory</h3>
+                <button onClick={() => setShowAddModal(false)} className="modal-close">
+                  <X size={18} />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleAddMemory} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="input-group">
+                  <label className="input-label">Category</label>
+                  <select value={newType} onChange={(e: any) => setNewType(e.target.value)} className="input-field">
+                    <option value="fact">General Fact</option>
+                    <option value="preference">Preference</option>
+                    <option value="goal">Goal</option>
+                    <option value="person">Important Person</option>
+                    <option value="milestone">Milestone</option>
+                  </select>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">Description</label>
+                  <textarea
+                    required
+                    placeholder="e.g. Preparing for machine learning interviews this month"
+                    value={newContent}
+                    onChange={(e) => setNewContent(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>
+                    Save Memory
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
