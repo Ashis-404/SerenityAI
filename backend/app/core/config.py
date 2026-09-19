@@ -15,11 +15,19 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
-    # Database: SQLite async by default for zero-setup local dev, or PostgreSQL when DATABASE_URL is set
+    # Database: Pure PostgreSQL async connection via asyncpg
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        f"sqlite+aiosqlite:///{BASE_DIR}/serenity.db"
+        "postgresql+asyncpg://postgres:2004@localhost:3000/serenity"
     )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Normalize postgres:// or postgresql:// to postgresql+asyncpg://
+        if self.DATABASE_URL.startswith("postgres://"):
+            self.DATABASE_URL = self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif self.DATABASE_URL.startswith("postgresql://"):
+            self.DATABASE_URL = self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
     # Groq API configuration with available models
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")

@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir fastapi uvicorn pydantic pydantic-settings sqlalchemy aiosqlite asyncpg passlib bcrypt apscheduler librosa soundfile scikit-learn pandas joblib openai-whisper email-validator pyjwt
+RUN pip install --no-cache-dir fastapi uvicorn pydantic pydantic-settings sqlalchemy asyncpg passlib bcrypt apscheduler librosa soundfile scikit-learn pandas joblib openai-whisper email-validator pyjwt
 
 COPY . .
 

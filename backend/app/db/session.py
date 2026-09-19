@@ -6,7 +6,9 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
     future=True,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
 )
 
 AsyncSessionLocal = async_sessionmaker(

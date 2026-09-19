@@ -30,7 +30,7 @@ FastAPI Backend API + JWT Auth Middleware
    ├── LLM Context Service (Groq Llama / GPT-OSS Models)
    ├── Semantic Memory & Event Extractor (LLM Structured JSON)
    ├── Background Scheduler (APScheduler with Quiet Hours filter)
-   └── SQLAlchemy Async DB (PostgreSQL / SQLite)
+   └── SQLAlchemy Async DB (PostgreSQL via asyncpg)
 ```
 
 ---
@@ -40,8 +40,7 @@ FastAPI Backend API + JWT Auth Middleware
 ### 1. Backend Setup
 ```bash
 # In the project root:
-pip install -r requirements.txt
-pip install fastapi uvicorn pydantic pydantic-settings sqlalchemy aiosqlite asyncpg passlib bcrypt apscheduler librosa soundfile scikit-learn pandas joblib openai-whisper email-validator pyjwt
+pip install -r backend/requirements.txt
 
 # Run the FastAPI server:
 python -m uvicorn backend.app.main:app --reload --port 8000
