@@ -10,9 +10,39 @@ import type {
   Intervention 
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api` 
-  : 'http://localhost:8000/api';
+function getApiBase(): string {
+  // 1. If VITE_API_URL was injected during build
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`;
+  }
+  // 2. If running locally
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8000/api';
+  }
+  // 3. Render automatic domain fallback (e.g. serenity-frontend.onrender.com -> serenity-backend.onrender.com)
+  if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
+    const backendHost = window.location.hostname.replace('-frontend', '-backend');
+    return `https://${backendHost}/api`;
+  }
+  return '/api';
+}
+
+const API_BASE = getApiBase();
+
+async function fetchWithHandler(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err: any) {
+    if (err.name === 'TypeError' && String(err.message).toLowerCase().includes('fetch')) {
+      throw new Error(
+        'Unable to connect to Serenity backend server. ' +
+        'If using Render free tier, the server may take 30-50 seconds to wake up from cold sleep. ' +
+        'Please wait 30 seconds and click again.'
+      );
+    }
+    throw err;
+  }
+}
 
 function getAuthHeaders(isMultipart: boolean = false): Record<string, string> {
   const token = localStorage.getItem('serenity_token');
@@ -29,7 +59,7 @@ function getAuthHeaders(isMultipart: boolean = false): Record<string, string> {
 export const api = {
   // Auth
   async register(data: any): Promise<{ access_token: string; user: User }> {
-    const res = await fetch(`${API_BASE}/auth/register`, {
+    const res = await fetchWithHandler(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -42,7 +72,7 @@ export const api = {
   },
 
   async login(data: any): Promise<{ access_token: string; user: User }> {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    const res = await fetchWithHandler(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -55,7 +85,7 @@ export const api = {
   },
 
   async getMe(): Promise<User> {
-    const res = await fetch(`${API_BASE}/auth/me`, {
+    const res = await fetchWithHandler(`${API_BASE}/auth/me`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Failed to fetch user');
@@ -64,7 +94,7 @@ export const api = {
 
   // Preferences & User
   async updatePreferences(data: Partial<UserPreference>): Promise<UserPreference> {
-    const res = await fetch(`${API_BASE}/users/preferences`, {
+    const res = await fetchWithHandler(`${API_BASE}/users/preferences`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -74,7 +104,7 @@ export const api = {
   },
 
   async deleteAllData(): Promise<{ message: string }> {
-    const res = await fetch(`${API_BASE}/users/data`, {
+    const res = await fetchWithHandler(`${API_BASE}/users/data`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -84,7 +114,7 @@ export const api = {
 
   // Conversations
   async getConversations(): Promise<Conversation[]> {
-    const res = await fetch(`${API_BASE}/conversations`, {
+    const res = await fetchWithHandler(`${API_BASE}/conversations`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) return [];
@@ -92,7 +122,7 @@ export const api = {
   },
 
   async createConversation(title?: string): Promise<Conversation> {
-    const res = await fetch(`${API_BASE}/conversations`, {
+    const res = await fetchWithHandler(`${API_BASE}/conversations`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ title: title || 'New Conversation' }),
@@ -102,7 +132,7 @@ export const api = {
   },
 
   async getConversation(id: string): Promise<Conversation> {
-    const res = await fetch(`${API_BASE}/conversations/${id}`, {
+    const res = await fetchWithHandler(`${API_BASE}/conversations/${id}`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Failed to fetch conversation');
@@ -116,7 +146,7 @@ export const api = {
     extracted_memories_count: number;
     extracted_events_count: number;
   }> {
-    const res = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+    const res = await fetchWithHandler(`${API_BASE}/conversations/${conversationId}/messages`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ text }),
@@ -138,7 +168,7 @@ export const api = {
     const formData = new FormData();
     formData.append('audio_file', audioBlob, 'audio.wav');
 
-    const res = await fetch(`${API_BASE}/conversations/${conversationId}/voice`, {
+    const res = await fetchWithHandler(`${API_BASE}/conversations/${conversationId}/voice`, {
       method: 'POST',
       headers: getAuthHeaders(true),
       body: formData,
@@ -152,7 +182,7 @@ export const api = {
 
   // Memories
   async getMemories(): Promise<Memory[]> {
-    const res = await fetch(`${API_BASE}/memories`, {
+    const res = await fetchWithHandler(`${API_BASE}/memories`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) return [];
@@ -160,7 +190,7 @@ export const api = {
   },
 
   async createMemory(data: Partial<Memory>): Promise<Memory> {
-    const res = await fetch(`${API_BASE}/memories`, {
+    const res = await fetchWithHandler(`${API_BASE}/memories`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -170,7 +200,7 @@ export const api = {
   },
 
   async updateMemory(id: string, data: Partial<Memory>): Promise<Memory> {
-    const res = await fetch(`${API_BASE}/memories/${id}`, {
+    const res = await fetchWithHandler(`${API_BASE}/memories/${id}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -180,7 +210,7 @@ export const api = {
   },
 
   async deleteMemory(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/memories/${id}`, {
+    const res = await fetchWithHandler(`${API_BASE}/memories/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -189,7 +219,7 @@ export const api = {
 
   // Events & Notifications
   async getEvents(): Promise<AppEvent[]> {
-    const res = await fetch(`${API_BASE}/events`, {
+    const res = await fetchWithHandler(`${API_BASE}/events`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) return [];
@@ -197,7 +227,7 @@ export const api = {
   },
 
   async getNotifications(): Promise<NotificationItem[]> {
-    const res = await fetch(`${API_BASE}/notifications`, {
+    const res = await fetchWithHandler(`${API_BASE}/notifications`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) return [];
@@ -205,7 +235,7 @@ export const api = {
   },
 
   async dismissNotification(id: string): Promise<void> {
-    await fetch(`${API_BASE}/notifications/${id}/dismiss`, {
+    await fetchWithHandler(`${API_BASE}/notifications/${id}/dismiss`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -213,7 +243,7 @@ export const api = {
 
   // Wellbeing & Interventions
   async getWeeklyInsights(): Promise<WellbeingSummary> {
-    const res = await fetch(`${API_BASE}/insights/weekly`, {
+    const res = await fetchWithHandler(`${API_BASE}/insights/weekly`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Failed to fetch insights');
@@ -221,7 +251,7 @@ export const api = {
   },
 
   async getPresetInterventions(): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/insights/interventions/presets`, {
+    const res = await fetchWithHandler(`${API_BASE}/insights/interventions/presets`, {
       headers: getAuthHeaders(),
     });
     if (!res.ok) return [];
@@ -229,7 +259,7 @@ export const api = {
   },
 
   async startIntervention(typeName: string): Promise<Intervention> {
-    const res = await fetch(`${API_BASE}/insights/interventions/start?type_name=${encodeURIComponent(typeName)}`, {
+    const res = await fetchWithHandler(`${API_BASE}/insights/interventions/start?type_name=${encodeURIComponent(typeName)}`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -238,7 +268,7 @@ export const api = {
   },
 
   async submitInterventionFeedback(id: string, feedback: any): Promise<Intervention> {
-    const res = await fetch(`${API_BASE}/insights/interventions/${id}/feedback`, {
+    const res = await fetchWithHandler(`${API_BASE}/insights/interventions/${id}/feedback`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(feedback),
