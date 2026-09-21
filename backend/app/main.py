@@ -35,15 +35,37 @@ app = FastAPI(
 
 # CORS middleware for frontend integration
 raw_origins = getattr(settings, "CORS_ORIGINS", "*")
-origins = [o.strip() for o in raw_origins.split(",") if o.strip()] if raw_origins != "*" else ["*"]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"^https:\/\/.*\.onrender\.com$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+default_local = [
+    "http://localhost:5173", 
+    "http://localhost:3000", 
+    "http://127.0.0.1:5173", 
+    "http://127.0.0.1:3000"
+]
+
+if raw_origins and raw_origins != "*":
+    # Production: Strictly allow only the configured domain(s) + localhost for local development
+    allowed_origins = [o.strip().rstrip("/") for o in raw_origins.split(",") if o.strip()]
+    for local_url in default_local:
+        if local_url not in allowed_origins:
+            allowed_origins.append(local_url)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    # Development fallback when no specific domain is set in .env
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_origin_regex=r"^https:\/\/serenity-frontend.*\.onrender\.com$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
