@@ -1,13 +1,66 @@
+# ==========================================
+# Environment & Secrets
+# ==========================================
 .env
-/dataset/
-venv/
-recordings/
+*.env
+!.env.example
+
+# ==========================================
+# Python Bytecode & Cache
+# ==========================================
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+
+# ==========================================
+# Virtual Environments
+# ==========================================
+venv/
+env/
+ENV/
+.venv/
+
+# ==========================================
+# Audio Uploads & Temporary Media
+# ==========================================
+uploads/*
+!uploads/.gitkeep
+recordings/
+*.wav
+*.mp3
+*.ogg
+*.webm
+*.m4a
+temp.wav
+
+# ==========================================
+# Datasets (Raw data files)
+# ==========================================
+/dataset/
+
+# ==========================================
+# Legacy Databases
+# ==========================================
 *.db
 *.sqlite3
+
+# ==========================================
+# Frontend Build Artifacts
+# ==========================================
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
+
+# ==========================================
+# Operating System & IDE Files
+# ==========================================
 .DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo

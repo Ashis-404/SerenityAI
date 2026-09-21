@@ -11,8 +11,12 @@ import backend.app.models # Register all models
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Create tables if not exist
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        import logging
+        logging.getLogger("uvicorn.error").error(f"Database initialization notice: {e}")
     
     # Start APScheduler background worker
     scheduler_service.start()
