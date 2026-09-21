@@ -14,11 +14,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "serenity_super_secret_jwt_key_2026_change_in_production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "*")
 
-    # Database: Pure PostgreSQL async connection via asyncpg
+    # Database: Pure PostgreSQL async connection via asyncpg (configured via .env)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        "postgresql+asyncpg://postgres:2004@localhost:3000/serenity"
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/serenity"
     )
 
     def __init__(self, **kwargs):

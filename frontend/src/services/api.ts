@@ -10,7 +10,9 @@ import type {
   Intervention 
 } from '../types';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api` 
+  : 'http://localhost:8000/api';
 
 function getAuthHeaders(isMultipart: boolean = false): Record<string, string> {
   const token = localStorage.getItem('serenity_token');
