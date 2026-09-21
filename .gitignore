@@ -1,5 +1,4 @@
 .env
-/models/
 /dataset/
 venv/
 recordings/
