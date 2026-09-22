@@ -337,7 +337,7 @@ export const CompanionPage: React.FC = () => {
           {messages.length === 0 && (
             <div className="chat-empty">
               <div className="chat-empty-orb">
-                <Sparkles size={36} color="#fff" />
+                <img src="/logo.png" alt="SerenityAI" style={{ width: 52, height: 52, objectFit: 'contain' }} />
               </div>
               <h3 className="chat-empty-title">Hello, {user?.name || 'friend'}</h3>
               <p className="chat-empty-text">
@@ -357,7 +357,7 @@ export const CompanionPage: React.FC = () => {
               <div className={`msg-avatar ${m.sender === 'user' ? 'user' : 'ai'}`}>
                 {m.sender === 'user'
                   ? <UserIcon size={14} color="var(--text-secondary)" />
-                  : <Sparkles size={14} color="#fff" />
+                  : <img src="/logo.png" alt="Serenity" style={{ width: 18, height: 18, objectFit: 'contain' }} />
                 }
               </div>
 
@@ -381,7 +381,7 @@ export const CompanionPage: React.FC = () => {
           {loading && (
             <div className="chat-thinking">
               <div className="msg-avatar ai">
-                <Sparkles size={14} color="#fff" />
+                <img src="/logo.png" alt="Serenity" style={{ width: 18, height: 18, objectFit: 'contain' }} />
               </div>
               <div className="thinking-dots">
                 <span /><span /><span />

@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, Shield, Bell } from 'lucide-react';
+import { Shield, Bell, ArrowLeft } from 'lucide-react';
 
-export const AuthPage: React.FC = () => {
+interface AuthPageProps {
+  onBackToLanding?: () => void;
+}
+
+export const AuthPage: React.FC<AuthPageProps> = ({ onBackToLanding }) => {
   const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [step, setStep] = useState<'auth' | 'onboarding'>('auth');
@@ -59,17 +63,25 @@ export const AuthPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
+        {/* Back to landing */}
+        {onBackToLanding && (
+          <button onClick={onBackToLanding} className="auth-back-btn">
+            <ArrowLeft size={16} />
+            Back
+          </button>
+        )}
+
         {/* Header */}
         <div className="auth-header">
-          <motion.div
-            className="auth-orb"
+          <motion.img
+            src="/logo.png"
+            alt="SerenityAI"
+            className="auth-logo-img"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-          >
-            <Sparkles size={28} color="#fff" />
-          </motion.div>
-          <h1 className="auth-title">Serenity</h1>
+          />
+          <h1 className="auth-title">SerenityAI</h1>
           <p className="auth-subtitle">Your Emotion-Aware AI Companion</p>
         </div>
 

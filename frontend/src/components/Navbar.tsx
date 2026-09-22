@@ -10,8 +10,7 @@ import {
   Settings as SettingsIcon,
   Bell,
   LogOut,
-  Check,
-  Sparkles
+  Check
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -65,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           {/* Brand */}
           <div className="nav-brand" onClick={() => setActiveTab('companion')}>
             <div className="nav-logo">
-              <Sparkles size={18} color="#fff" />
+              <img src="/logo.png" alt="SerenityAI" style={{ width: 28, height: 28, objectFit: 'contain' }} />
             </div>
             <span className="nav-title">
               Serenity<span className="nav-badge">2.0</span>

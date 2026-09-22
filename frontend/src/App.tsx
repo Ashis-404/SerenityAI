@@ -3,11 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { AuthPage } from './pages/AuthPage';
+import { LandingPage } from './pages/LandingPage';
 import { CompanionPage } from './pages/CompanionPage';
 import { MemoryPage } from './pages/MemoryPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { Sparkles } from 'lucide-react';
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -18,12 +18,13 @@ const pageVariants = {
 const MainApp: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<'companion' | 'memory' | 'insights' | 'settings'>('companion');
+  const [showLanding, setShowLanding] = useState(true);
 
   if (loading) {
     return (
       <div className="loading-screen">
         <div className="loading-orb">
-          <Sparkles size={24} color="#fff" />
+          <img src="/logo.png" alt="SerenityAI" style={{ width: 32, height: 32, objectFit: 'contain' }} />
         </div>
         <p className="loading-text">Loading Serenity...</p>
       </div>
@@ -31,7 +32,10 @@ const MainApp: React.FC = () => {
   }
 
   if (!user) {
-    return <AuthPage />;
+    if (showLanding) {
+      return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+    }
+    return <AuthPage onBackToLanding={() => setShowLanding(true)} />;
   }
 
   const renderPage = () => {
@@ -73,3 +77,4 @@ export function App() {
 }
 
 export default App;
+
