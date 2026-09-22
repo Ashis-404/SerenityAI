@@ -166,7 +166,11 @@ export const api = {
     extracted_events_count: number;
   }> {
     const formData = new FormData();
-    formData.append('audio_file', audioBlob, 'audio.wav');
+    let filename = 'recording.webm';
+    if (audioBlob.type.includes('wav')) filename = 'recording.wav';
+    else if (audioBlob.type.includes('mp4')) filename = 'recording.mp4';
+    else if (audioBlob.type.includes('ogg')) filename = 'recording.ogg';
+    formData.append('audio_file', audioBlob, filename);
 
     const res = await fetchWithHandler(`${API_BASE}/conversations/${conversationId}/voice`, {
       method: 'POST',

@@ -7,12 +7,13 @@ import { AcousticWaveform } from '../components/AcousticWaveform';
 import {
   Send,
   Mic,
-  MicOff,
   Plus,
   Volume2,
   VolumeX,
   Sparkles,
-  User as UserIcon
+  User as UserIcon,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 
 export const CompanionPage: React.FC = () => {
@@ -24,10 +25,16 @@ export const CompanionPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
 
+  // Recording State & Refs
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStartTimeRef = useRef<number>(0);
+  const isCancelledRef = useRef<boolean>(false);
+  const timerIntervalRef = useRef<number | null>(null);
 
   const [extractionAlert, setExtractionAlert] = useState<{ memories: number; events: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +44,13 @@ export const CompanionPage: React.FC = () => {
   };
 
   useEffect(() => { scrollToBottom(); }, [messages, loading]);
+
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    };
+  }, [mediaStream]);
 
   const selectConversation = async (id: string) => {
     setActiveConvId(id);
@@ -77,6 +91,7 @@ export const CompanionPage: React.FC = () => {
     setInputText('');
     setLoading(true);
     setExtractionAlert(null);
+    setErrorMessage(null);
 
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
@@ -101,7 +116,10 @@ export const CompanionPage: React.FC = () => {
         utterance.rate = 0.95;
         window.speechSynthesis.speak(utterance);
       }
-    } catch (err) { /* ignore */ }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to send message.');
+      setTimeout(() => setErrorMessage(null), 5000);
+    }
     finally { setLoading(false); }
   };
 
@@ -109,6 +127,7 @@ export const CompanionPage: React.FC = () => {
     if (!activeConvId) return;
     setLoading(true);
     setExtractionAlert(null);
+    setErrorMessage(null);
 
     try {
       const res = await api.sendVoiceMessage(activeConvId, audioBlob);
@@ -124,17 +143,28 @@ export const CompanionPage: React.FC = () => {
         utterance.rate = 0.95;
         window.speechSynthesis.speak(utterance);
       }
-    } catch (err) { /* ignore */ }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Voice processing failed. Please try again.');
+      setTimeout(() => setErrorMessage(null), 5000);
+    }
     finally { setLoading(false); }
   };
 
   const startRecording = async () => {
     try {
+      setErrorMessage(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setMediaStream(stream);
       audioChunksRef.current = [];
+      isCancelledRef.current = false;
+      recordingStartTimeRef.current = Date.now();
 
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : '';
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -142,24 +172,76 @@ export const CompanionPage: React.FC = () => {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
         stream.getTracks().forEach(track => track.stop());
         setMediaStream(null);
+        setIsRecording(false);
+        setRecordingSeconds(0);
+
+        if (isCancelledRef.current) {
+          audioChunksRef.current = [];
+          return;
+        }
+
+        const duration = Date.now() - recordingStartTimeRef.current;
+        if (duration < 800) {
+          setErrorMessage('Voice note was too short (under 1 second). Please speak and try again.');
+          setTimeout(() => setErrorMessage(null), 4000);
+          audioChunksRef.current = [];
+          return;
+        }
+
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mimeType || 'audio/webm'
+        });
+        audioChunksRef.current = [];
         await processVoiceAudio(audioBlob);
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(250);
       setIsRecording(true);
+      setRecordingSeconds(0);
+
+      timerIntervalRef.current = window.setInterval(() => {
+        setRecordingSeconds(s => s + 1);
+      }, 1000);
     } catch (err) {
-      alert('Microphone access is required for voice input.');
+      setErrorMessage('Microphone access is required for voice input.');
+      setTimeout(() => setErrorMessage(null), 5000);
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
     }
+  };
+
+  const cancelRecording = () => {
+    isCancelledRef.current = true;
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      setMediaStream(null);
+    }
+    setIsRecording(false);
+    setRecordingSeconds(0);
+    audioChunksRef.current = [];
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   const getEmotionClass = (emotion: string) => {
@@ -235,6 +317,21 @@ export const CompanionPage: React.FC = () => {
           )}
         </AnimatePresence>
 
+        {/* Error banner */}
+        <AnimatePresence>
+          {errorMessage && (
+            <motion.div
+              className="chat-error-banner"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+            >
+              <AlertCircle size={14} color="#f87171" />
+              <span>{errorMessage}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Messages */}
         <div className="chat-messages">
           {messages.length === 0 && (
@@ -244,7 +341,7 @@ export const CompanionPage: React.FC = () => {
               </div>
               <h3 className="chat-empty-title">Hello, {user?.name || 'friend'}</h3>
               <p className="chat-empty-text">
-                How are you feeling today? Type a message or hold the microphone to talk.
+                How are you feeling today? Type a message or click the microphone to talk.
               </p>
             </div>
           )}
@@ -299,36 +396,62 @@ export const CompanionPage: React.FC = () => {
         <div className="chat-input-bar">
           <AcousticWaveform isRecording={isRecording} stream={mediaStream} />
 
-          <form onSubmit={handleSendMessage} className="chat-input-form">
-            <button
-              type="button"
-              onMouseDown={startRecording}
-              onMouseUp={stopRecording}
-              onTouchStart={startRecording}
-              onTouchEnd={stopRecording}
-              className={`mic-btn ${isRecording ? 'recording' : 'idle'}`}
-              title="Hold to speak"
-            >
-              {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
-            </button>
+          {isRecording ? (
+            <div className="chat-input-form">
+              <div className="recording-bar">
+                <div className="recording-dot" />
+                <span className="recording-time">{formatTime(recordingSeconds)}</span>
+                <span className="recording-label">Listening to your voice...</span>
+                <button
+                  type="button"
+                  onClick={cancelRecording}
+                  className="discard-btn"
+                  title="Discard recording"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
 
-            <input
-              type="text"
-              placeholder={isRecording ? 'Listening...' : 'Type a message...'}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              disabled={isRecording || loading}
-              className="chat-input"
-            />
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="send-btn"
+                title="Finish & Send voice note"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSendMessage} className="chat-input-form">
+              <button
+                type="button"
+                onClick={startRecording}
+                className="mic-btn idle"
+                title="Click to record voice note"
+                disabled={loading}
+              >
+                <Mic size={18} />
+              </button>
 
-            <button
-              type="submit"
-              disabled={!inputText.trim() || loading || isRecording}
-              className="send-btn"
-            >
-              <Send size={16} />
-            </button>
-          </form>
+              <input
+                type="text"
+                placeholder="Type a message or click mic to talk..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                disabled={loading}
+                className="chat-input"
+              />
+
+              <button
+                type="submit"
+                disabled={!inputText.trim() || loading}
+                className="send-btn"
+                title="Send message"
+              >
+                <Send size={16} />
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

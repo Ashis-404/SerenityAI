@@ -1037,6 +1037,81 @@ select.input-field {
   cursor: not-allowed;
 }
 
+.recording-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  animation: pulseBorder 2s infinite ease-in-out;
+}
+
+@keyframes pulseBorder {
+  0%, 100% { border-color: rgba(244, 63, 94, 0.3); }
+  50% { border-color: rgba(244, 63, 94, 0.7); }
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-rose);
+  animation: pulseGlow 1s infinite alternate;
+  flex-shrink: 0;
+}
+
+.recording-time {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-rose);
+  flex-shrink: 0;
+}
+
+.recording-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discard-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.discard-btn:hover {
+  background: rgba(244, 63, 94, 0.12);
+  color: var(--accent-rose);
+  border-color: var(--accent-rose);
+}
+
+.chat-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(244, 63, 94, 0.1);
+  border-bottom: 1px solid rgba(244, 63, 94, 0.2);
+  color: #f87171;
+  font-size: 13px;
+}
+
 /* ─── Waveform ─── */
 .waveform-bar {
   display: flex;
