@@ -67,7 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               <img src="/logo.png" alt="SerenityAI" style={{ width: 28, height: 28, objectFit: 'contain' }} />
             </div>
             <span className="nav-title">
-              Serenity<span className="nav-badge">2.0</span>
+              SerenityAI
             </span>
           </div>
 

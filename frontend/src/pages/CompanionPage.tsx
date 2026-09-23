@@ -244,16 +244,6 @@ export const CompanionPage: React.FC = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const getEmotionClass = (emotion: string) => {
-    const e = emotion.toLowerCase();
-    if (e.includes('calm')) return 'emotion-calm';
-    if (e.includes('happy')) return 'emotion-happy';
-    if (e.includes('sad')) return 'emotion-sad';
-    if (e.includes('stress')) return 'emotion-stressed';
-    if (e.includes('ang')) return 'emotion-angry';
-    if (e.includes('fear')) return 'emotion-fearful';
-    return 'emotion-neutral';
-  };
 
   return (
     <div className="chat-layout">
@@ -367,11 +357,6 @@ export const CompanionPage: React.FC = () => {
                 </div>
 
                 <div className={`msg-meta ${m.sender === 'user' ? 'user' : ''}`}>
-                  {m.emotion_analysis && (
-                    <span className={`emotion-badge ${getEmotionClass(m.emotion_analysis.emotion)}`}>
-                      {m.emotion_analysis.emotion}
-                    </span>
-                  )}
                   <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
